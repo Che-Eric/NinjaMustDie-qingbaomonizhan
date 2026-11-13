@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>情报模拟战 · 网页版</title>
+  <link rel="stylesheet" href="play.css">
+</head>
+<body>
+  <div class="bg-grain" aria-hidden="true"></div>
+  <div class="bg-sparks" aria-hidden="true">
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+  </div>
+  <main id="app" data-phase="placement">
+    <div class="utility">
+      <button type="button" id="mute" class="util-btn" title="声音开关" aria-pressed="true"></button>
+      <button type="button" id="restart" class="util-btn gold" title="开始新对局">新对局</button>
+    </div>
+    <div class="topbar">
+      <div class="stats left" id="statsLeft"></div>
+      <div class="center">
+        <div class="roundbanner" id="roundBanner">第 1/5 回合</div>
+        <div class="clock" id="clock"></div>
+      </div>
+      <div class="stats right" id="statsRight"></div>
+    </div>
+    <div id="timerwrap"><div id="timerbar"></div></div>
+    <div id="restbanner" hidden></div>
+    <div class="layout" id="layout">
+      <section id="left" class="boardframe"></section>
+      <section id="right" class="shoppanel"></section>
+    </div>
+    <p id="message" role="status"></p>
+    <div class="shuriken-deco" aria-hidden="true"></div>
+  </main>
+  <div id="lookback" class="overlay" hidden>
+    <div class="overlay-card">
+      <div class="overlay-head">
+        <h2>上轮阵容回看</h2>
+        <button type="button" id="backToPlace" class="btn gold">回到放置</button>
+      </div>
+      <div class="layout" id="lookbackLayout"></div>
+    </div>
+  </div>
+  <div id="over" class="overlay" hidden>
+    <div class="overlay-card narrow">
+      <div id="overContent"></div>
+      <button type="button" id="overRestart" class="btn gold big">再来一局</button>
+    </div>
+  </div>
+  <script type="module" src="static.mjs"></script>
+</body>
+</html>
