@@ -1,7 +1,7 @@
 /* 静态网页版：游戏引擎 + 训练AI 全部在浏览器内运行（路线A，无需后端）。 */
 import { Game } from './game.mjs';
 import { encodeGame, legalMask, READY } from './encode.mjs';
-import { loadModel, choose } from './nn.mjs';
+import { setWeights, choose } from './nn.mjs';
 
 const get = (id) => document.getElementById(id);
 const EL = { 火: 'fire', 水: 'water', 风: 'wind', 雷: 'thunder', 无: 'none' };
@@ -50,6 +50,7 @@ const FX = {
 let game = null, state = null, selected = null, lookback = false;
 let placementDeadline = null, restDeadline = null, nextAi = 0, aiUsed = 0;
 let prevPhase = null, prevAttack = null, prevExtra = null, lastSig = '';
+let modelReady = false;
 
 function newGame() {
   game = new Game();
@@ -64,6 +65,7 @@ function toCommand(a) {
   return { type: 'ready' };
 }
 function aiAct() {
+  if (!modelReady) return;
   if (aiUsed >= BUDGET) { game.players[1].ready = true; return; }
   const { vec, mask } = encodeGame(game, 1, BUDGET, aiUsed);
   let a = choose(vec, mask);
@@ -71,6 +73,54 @@ function aiAct() {
   const err = game.act(1, toCommand(a));
   aiUsed++;
   if (err) game.players[1].ready = true;
+}
+const WEIGHT_BYTES = 5830864;
+async function fetchWeights(onProgress) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 60000);
+  try {
+    const res = await fetch('weights.bin', { signal: ctrl.signal, cache: 'force-cache' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const total = +res.headers.get('Content-Length') || WEIGHT_BYTES;
+    if (!res.body) { const buf = await res.arrayBuffer(); onProgress(total, total); return buf; }
+    const reader = res.body.getReader();
+    const chunks = []; let loaded = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value); loaded += value.length; onProgress(loaded, total);
+    }
+    const all = new Uint8Array(loaded); let o = 0;
+    for (const c of chunks) { all.set(c, o); o += c.length; }
+    return all.buffer;
+  } finally { clearTimeout(timer); }
+}
+async function boot() {
+  const fill = get('bootFill'), pct = get('bootPct'), mb = get('bootMB'),
+    err = get('bootErr'), retry = get('bootRetry');
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      err.textContent = ''; retry.hidden = true;
+      const man = await fetch('weights.json').then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+      const buf = await fetchWeights((loaded, total) => {
+        const p = Math.min(100, loaded / total * 100);
+        fill.style.width = p + '%';
+        pct.textContent = Math.floor(p) + '%';
+        mb.textContent = (loaded / 1048576).toFixed(1) + ' / ' + (total / 1048576).toFixed(1) + ' MB';
+      });
+      setWeights(buf, man);
+      modelReady = true;
+      get('boot').hidden = true;
+      lastSig = '';
+      newGame(); tick(); setInterval(tick, 100);
+      return;
+    } catch (e) {
+      err.textContent = `加载失败（${e.message}），第 ${attempt}/3 次`;
+      if (attempt < 3) await new Promise(r => setTimeout(r, 800));
+    }
+  }
+  err.textContent = '模型加载失败，请检查网络后点击重试。';
+  retry.hidden = false;
 }
 function buildState() {
   const obs = game.observe(0);
@@ -201,6 +251,9 @@ function render() {
   }
   get('mute').innerHTML = icoSound(!FX.muted) + (FX.muted ? '静音' : '声音');
   get('mute').setAttribute('aria-pressed', String(!FX.muted));
+  const badge = get('aiBadge');
+  badge.textContent = modelReady ? '训练AI已就绪' : '模型加载中…';
+  badge.className = 'util-btn badge-ai' + (modelReady ? ' ok' : '');
   document.querySelector('.shuriken-deco').innerHTML = icoShuriken();
 }
 function tickClock() {
@@ -243,7 +296,10 @@ get('restart').addEventListener('click', () => newGame());
 get('overRestart').addEventListener('click', () => newGame());
 get('backToPlace').addEventListener('click', () => { lookback = false; lastSig = ''; render(); });
 
-loadModel('.').then(() => { newGame(); tick(); setInterval(tick, 100); })
-  .catch(err => { get('message').textContent = '模型加载失败: ' + err.message; });
+get('bootRetry').addEventListener('click', () => boot());
+boot();
 
-window.__web = { get game() { return game; }, get state() { return state; } };
+window.__web = {
+  get game() { return game; }, get state() { return state; },
+  get modelReady() { return modelReady; },
+};

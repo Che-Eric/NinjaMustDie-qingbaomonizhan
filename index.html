@@ -13,6 +13,7 @@
   </div>
   <main id="app" data-phase="placement">
     <div class="utility">
+      <span id="aiBadge" class="util-btn badge-ai">模型加载中…</span>
       <button type="button" id="mute" class="util-btn" title="声音开关" aria-pressed="true"></button>
       <button type="button" id="restart" class="util-btn gold" title="开始新对局">新对局</button>
     </div>
@@ -33,6 +34,19 @@
     <p id="message" role="status"></p>
     <div class="shuriken-deco" aria-hidden="true"></div>
   </main>
+  <div id="boot" class="boot">
+    <div class="boot-card">
+      <div class="boot-shuriken">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M50 0 61 39 100 50 61 61 50 100 39 61 0 50 39 39Z"/><circle cx="50" cy="50" r="9" fill="rgba(0,0,0,.45)"/></svg>
+      </div>
+      <h2>加载训练模型</h2>
+      <div class="boot-bar"><div id="bootFill"></div></div>
+      <div class="boot-line"><span id="bootPct">0%</span><span id="bootMB">0.0 / 5.6 MB</span></div>
+      <p class="boot-hint">首次打开需下载约 5.6MB 的已训练模型（视网络数秒至数十秒），完成后浏览器会缓存、再次打开秒进。加载完成前不会开始对局，也不会使用任何替代 AI。</p>
+      <p id="bootErr" class="boot-err"></p>
+      <button type="button" id="bootRetry" class="btn gold" hidden>重试</button>
+    </div>
+  </div>
   <div id="lookback" class="overlay" hidden>
     <div class="overlay-card">
       <div class="overlay-head">

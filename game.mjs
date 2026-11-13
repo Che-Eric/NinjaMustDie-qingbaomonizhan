@@ -1,5 +1,9 @@
 import { cards, createDeck } from './cards.mjs';
 
+const clone = (typeof structuredClone === 'function')
+  ? structuredClone
+  : (o) => JSON.parse(JSON.stringify(o));
+
 const twoTigers = new Set(['ember', 'kagura', 'hunt', 'beast', 'divine']);
 const fourTigers = new Set(['flame', 'snow', 'slash', 'might', 'spark']);
 const masks = new Set(['firemask', 'watermask', 'windmask', 'thundermask']);
@@ -244,7 +248,7 @@ export class Game {
       before: this.lastBattle.before,
       after: this.lastBattle.after,
     };
-    return structuredClone({
+    return clone({
       side, round: this.round, phase: this.phase,
       self: {
         hp: player.hp, gold: player.gold, ready: player.ready, bought: player.bought,
