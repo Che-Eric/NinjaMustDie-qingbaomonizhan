@@ -32,8 +32,23 @@
       <section id="right" class="shoppanel"></section>
     </div>
     <p id="message" role="status"></p>
+    <div id="overBar" class="overbar" hidden>
+      <span class="overbar-text">对局结束 · 正在复盘最后一轮双方布置与扣血</span>
+      <button type="button" class="btn blue" data-action="showOver">查看结算</button>
+      <button type="button" class="btn gold" data-action="restart">再来一局</button>
+    </div>
     <div class="shuriken-deco" aria-hidden="true"></div>
   </main>
+  <div id="start" class="boot" hidden>
+    <div class="boot-card">
+      <div class="boot-shuriken">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M50 0 61 39 100 50 61 61 50 100 39 61 0 50 39 39Z"/><circle cx="50" cy="50" r="9" fill="rgba(0,0,0,.45)"/></svg>
+      </div>
+      <h2>情报模拟战</h2>
+      <p class="boot-hint">模型已就绪。点击开始后进入第 1 回合放置阶段（50s），双方就绪或超时后结算休整 10s，共 5 回合。放置阶段点击卡面选中、再点棋盘空格放置；属性/类别见卡牌左下/右下角。</p>
+      <button type="button" class="btn gold big" data-action="start">开始游戏</button>
+    </div>
+  </div>
   <div id="boot" class="boot">
     <div class="boot-card">
       <div class="boot-shuriken">
@@ -59,7 +74,10 @@
   <div id="over" class="overlay" hidden>
     <div class="overlay-card narrow">
       <div id="overContent"></div>
-      <button type="button" id="overRestart" class="btn gold big">再来一局</button>
+      <div class="over-actions">
+        <button type="button" class="btn blue" data-action="dismissOver">查看最后一轮</button>
+        <button type="button" id="overRestart" class="btn gold big">再来一局</button>
+      </div>
     </div>
   </div>
   <script type="module" src="static.mjs"></script>

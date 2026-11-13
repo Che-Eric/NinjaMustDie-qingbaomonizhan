@@ -99,6 +99,7 @@ h1,h2,.roundbanner,.btn.gold,.shop-title{font-family:"KaiTi","STKaiti","Microsof
 
 /* layout */
 .layout{display:grid;width:100%;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:18px;align-items:start}
+#app[data-phase="battle"] .layout,#app[data-phase="over"] .layout,#lookbackLayout{grid-template-columns:1fr 1fr}
 #left,#right{min-width:0;width:100%;max-width:100%}
 
 /* ---- board frame (indigo + gold ornaments) ---- */
@@ -121,7 +122,7 @@ h1,h2,.roundbanner,.btn.gold,.shop-title{font-family:"KaiTi","STKaiti","Microsof
   background:rgba(20,22,34,.6);border:1px dashed var(--gold);border-radius:6px;padding:6px 10px}
 
 /* ---- card face ---- */
-.card{position:relative;display:flex;flex:1;flex-direction:column;gap:6px;padding:26px 9px 9px;
+.card{position:relative;display:flex;flex:1;flex-direction:column;gap:6px;padding:26px 9px 26px;
   border:1px solid #8893a3;border-radius:7px;color:#fff;overflow:hidden;cursor:pointer;
   background:linear-gradient(165deg,#3a4150,#2b3140);transition:transform .12s, box-shadow .12s}
 .card:hover{transform:translateY(-2px)}
@@ -132,7 +133,14 @@ h1,h2,.roundbanner,.btn.gold,.shop-title{font-family:"KaiTi","STKaiti","Microsof
 .card.none{background:linear-gradient(165deg,#4a5058,#343a42);border-color:var(--none)}
 .card strong{font-size:15px;text-align:center;text-shadow:0 1px 2px #000}
 .card .effect{font-size:11.5px;line-height:1.45;text-align:center;color:#f0e6d2;opacity:.95}
-.card .meta{font-size:10.5px;text-align:center;color:#d8dce4;opacity:.8}
+.badge.elem,.badge.role{top:auto;bottom:4px;font-size:10.5px;font-weight:700}
+.badge.elem{left:4px}
+.badge.role{right:4px;background:linear-gradient(180deg,#3a3f4d,#22262e);color:#cfd4dc;border:1px solid #565d6e}
+.badge.elem.fire{background:#7a3028;border:1px solid var(--fire-hi);color:#ffd7d0}
+.badge.elem.water{background:#274668;border:1px solid var(--water-hi);color:#cfe9ff}
+.badge.elem.wind{background:#20503f;border:1px solid var(--wind-hi);color:#d0f5e3}
+.badge.elem.thunder{background:#43265c;border:1px solid var(--thunder-hi);color:#ecd9ff}
+.badge.elem.none{background:#4a5058;border:1px solid var(--none);color:#e8e8e8}
 .badge{position:absolute;top:4px;display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:800;
   padding:2px 7px;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.5);font-variant-numeric:tabular-nums}
 .badge svg{width:11px;height:11px}
@@ -215,6 +223,12 @@ h1,h2,.roundbanner,.btn.gold,.shop-title{font-family:"KaiTi","STKaiti","Microsof
 .boot-hint{font-size:12.5px;line-height:1.7;color:var(--dim);margin:14px 0 0}
 .boot-err{color:var(--danger);font-size:13px;min-height:1.2em;margin:10px 0 0}
 #bootRetry{margin-top:6px}
+.boot-card .btn{margin-top:14px}
+.overbar{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:14px;
+  background:linear-gradient(90deg,#233b5c,#2b3050);border:1px solid var(--water-hi);border-radius:8px;padding:10px 14px}
+.overbar-text{color:#cfe9ff;font-weight:600;font-size:13.5px}
+.over-actions{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:16px;flex-wrap:wrap}
+.over-metrics{justify-content:center;margin:12px 0 4px}
 
 /* overlays */
 .overlay{position:fixed;inset:0;z-index:40;background:rgba(8,10,16,.78);backdrop-filter:blur(3px);

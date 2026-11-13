@@ -11,7 +11,7 @@ const PLACE = 50000, REST = 10000, AI_INTERVAL = 900, BUDGET = 64;
 const svg = (inner, vb = '0 0 24 24') => `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${inner}</svg>`;
 const icoHeart = () => svg('<path fill="#e05a6d" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>');
 const icoSpecial = () => svg('<path fill="#5dade2" d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/>');
-const icoAtk = () => svg('<path fill="#d9b36a" d="M50 0 61 39 100 50 61 61 50 100 39 61 0 50 39 39Z"/><circle cx="50" cy="50" r="9" fill="rgba(0,0,0,.45)"/>', '0 0 100 100');
+const icoAtk = () => svg('<path fill="#d9b36a" d="M12 1.5 15 5.5 13.2 13.5 12 15.5 10.8 13.5 9 5.5Z"/><path fill="#b98a3e" d="M6.5 15h11v2h-11z"/><path fill="#8a6a34" d="M11 17h2v4h-2z"/><circle cx="12" cy="22" r="1.4" fill="#b98a3e"/>');
 const icoShuriken = (cls = '') => `<svg class="${cls}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M50 0 61 39 100 50 61 61 50 100 39 61 0 50 39 39Z"/><circle cx="50" cy="50" r="9" fill="rgba(0,0,0,.45)"/></svg>`;
 const icoLock = (locked) => locked
   ? svg('<path fill="currentColor" d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 0 1 6 0v3H9z"/>')
@@ -50,13 +50,25 @@ const FX = {
 let game = null, state = null, selected = null, lookback = false;
 let placementDeadline = null, restDeadline = null, nextAi = 0, aiUsed = 0;
 let prevPhase = null, prevAttack = null, prevExtra = null, lastSig = '';
-let modelReady = false;
+let modelReady = false, started = false, overDismissed = false;
 
 function newGame() {
   game = new Game();
+  placementDeadline = null;
+  restDeadline = null; aiUsed = 0; nextAi = 0;
+  selected = null; lookback = false; overDismissed = false; started = false; lastSig = '';
+}
+function startRound() {
+  started = true;
   placementDeadline = performance.now() + PLACE;
-  restDeadline = null; aiUsed = 0; nextAi = performance.now() + 1000;
-  selected = null; lookback = false; lastSig = '';
+  restDeadline = null; nextAi = performance.now() + 800;
+  overDismissed = false; lastSig = '';
+  get('start').hidden = true;
+}
+function restartGame() {
+  newGame();
+  get('start').hidden = true;
+  startRound();
 }
 function toCommand(a) {
   if (a < 45) return { type: 'buy', slot: Math.floor(a / 9), cell: a % 9 };
@@ -112,7 +124,13 @@ async function boot() {
       modelReady = true;
       get('boot').hidden = true;
       lastSig = '';
-      newGame(); tick(); setInterval(tick, 100);
+      newGame();
+      state = buildState(); render();
+      get('timerbar').style.width = '100%';
+      get('clock').innerHTML = `${icoClock()}等待开始`;
+      get('start').hidden = false;
+      setInterval(tick, 100);
+      if (new URLSearchParams(location.search).get('autostart') === '1') startRound();
       return;
     } catch (e) {
       err.textContent = `加载失败（${e.message}），第 ${attempt}/3 次`;
@@ -138,6 +156,7 @@ function buildState() {
   };
 }
 function tick() {
+  if (!started) return;
   const now = performance.now();
   if (!game.result) {
     if (game.phase === 'battle') {
@@ -163,6 +182,7 @@ function tick() {
   tickClock();
 }
 function humanAct(action) {
+  if (!started) { get('message').textContent = '请先点击开始游戏'; return; }
   if (state.phase !== 'placement') { get('message').textContent = '结算休整期无法操作'; return; }
   if (game.players[0].ready) { get('message').textContent = '你已准备就绪'; return; }
   if (!legalMask(game, 0)[action]) { get('message').textContent = '该操作当前不可用'; return; }
@@ -187,7 +207,8 @@ function cardMarkup(card, opts = {}) {
   return `<div class="${cls.join(' ')}"${action}>
     <span class="badge atk">${icoAtk()}${atk}</span><span class="badge cost">${icoCoin()}${card.cost}</span>
     <strong>${card.name}</strong><span class="effect">${card.effect}</span>
-    <span class="meta">${card.element === '无' ? '无属性' : card.element} · ${card.role}</span></div>`;
+    <span class="badge elem ${EL[card.element] ?? 'none'}">${card.element === '无' ? '无' : card.element}</span>
+    <span class="badge role">${card.role}</span></div>`;
 }
 function boardGrid(board, canPlace) {
   return `<div class="grid">${board.map((card, cell) => {
@@ -243,11 +264,18 @@ function render() {
   get('restbanner').hidden = s.phase !== 'battle';
   get('lookback').hidden = !(lookback && s.phase === 'placement' && s.lastBattle);
   if (!get('lookback').hidden) get('lookbackLayout').innerHTML = battlePanel(s.lastBattle, 0) + battlePanel(s.lastBattle, 1);
-  get('over').hidden = s.phase !== 'over';
-  if (s.phase === 'over' && s.result) {
-    const w = s.result.winner;
+  get('over').hidden = !(s.phase === 'over' && !overDismissed);
+  get('overBar').hidden = !(s.phase === 'over' && overDismissed);
+  if (s.phase === 'over' && s.result && s.lastBattle) {
+    const w = s.result.winner, b = s.lastBattle;
     get('overContent').innerHTML = `<div class="verdict ${w === 0 ? 'win' : w === 1 ? 'lose' : 'draw'}">${w === 0 ? '获胜' : w === 1 ? '失败' : '平局'}</div>
-      <div class="scoreline">本局得分 <b>${s.result.scores[0]}</b> · 对手 <b>${s.result.scores[1]}</b></div>`;
+      <div class="metrics over-metrics">
+        ${chip('我方生命', `${b.before[0]} → ${b.after[0]}`, 'dmg')}
+        ${chip('敌方生命', `${b.before[1]} → ${b.after[1]}`, 'dmg')}
+        ${chip('我方得分', s.result.scores[0], 'good')}
+        ${chip('敌方得分', s.result.scores[1])}
+      </div>
+      <div class="scoreline">第 ${b.round} 回合结算 · 我方受到 <b>${b.incoming[0]}</b> · 敌方受到 <b>${b.incoming[1]}</b></div>`;
   }
   get('mute').innerHTML = icoSound(!FX.muted) + (FX.muted ? '静音' : '声音');
   get('mute').setAttribute('aria-pressed', String(!FX.muted));
@@ -263,12 +291,18 @@ function tickClock() {
   bar.style.width = `${Math.max(0, Math.min(100, (s.timeLeft / s.phaseLimit) * 100))}%`;
   bar.className = s.phase === 'battle' ? 'rest' : (s.timeLeft <= 10 ? 'low' : '');
   const clock = get('clock');
+  if (s.phase === 'over') {
+    clock.className = 'clock';
+    clock.innerHTML = `${icoClock()}对局结束`;
+    bar.style.width = '100%'; bar.className = 'rest';
+    return;
+  }
   clock.className = 'clock' + (s.phase === 'placement' && s.timeLeft <= 10 ? ' low' : '');
   clock.innerHTML = `${icoClock()}倒计时: <b>${secs}</b>s`;
   if (s.phase === 'battle') get('restbanner').innerHTML = `${icoClock()}结算休整中 · 剩余 ${secs}s · 无法操作 · 查看双方本回合放置与伤害`;
 }
 function signature(s) {
-  return JSON.stringify([s.round, s.phase, selected, lookback, s.self.hp, s.self.gold, s.self.attack,
+  return JSON.stringify([s.round, s.phase, selected, lookback, started, overDismissed, s.self.hp, s.self.gold, s.self.attack,
     s.self.extra, s.self.ready, s.self.freeRefresh, s.self.extraRefresh,
     s.self.board.map(c => c && [c.id, c.placedRound, c.currentAttack]),
     s.self.shop.map(c => c && [c.id, c.locked]),
@@ -289,11 +323,14 @@ document.addEventListener('click', (e) => {
   if (type === 'ready') { humanAct(READY); selected = null; return; }
   if (type === 'lookback') { lookback = true; lastSig = ''; render(); return; }
   if (type === 'back') { lookback = false; lastSig = ''; render(); return; }
-  if (type === 'restart') { newGame(); return; }
+  if (type === 'start') { FX.ready(); startRound(); return; }
+  if (type === 'dismissOver') { overDismissed = true; lastSig = ''; render(); return; }
+  if (type === 'showOver') { overDismissed = false; lastSig = ''; render(); return; }
+  if (type === 'restart') { restartGame(); return; }
 });
 get('mute').addEventListener('click', () => { FX.ensure(); FX.muted = !FX.muted; lastSig = ''; render(); });
-get('restart').addEventListener('click', () => newGame());
-get('overRestart').addEventListener('click', () => newGame());
+get('restart').addEventListener('click', () => restartGame());
+get('overRestart').addEventListener('click', () => restartGame());
 get('backToPlace').addEventListener('click', () => { lookback = false; lastSig = ''; render(); });
 
 get('bootRetry').addEventListener('click', () => boot());
